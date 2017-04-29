@@ -65,6 +65,7 @@
 int16_t acctempx,acctempy,acctempz;
 float gyrotempx,gyrotempy,gyrotempz;
 extern S_FLOAT_XYZ Q_ANGLE;
+int lastx,lasty,lastz,nowx,nowy,nowz;
 
 /* SendOverUSB = 0  --> Save sensors data on SDCard (enable with double click) */
 /* SendOverUSB = 1  --> Send sensors data via USB */
@@ -95,12 +96,7 @@ static void Error_Handler( void );
 static void RTC_Config( void );
 static void RTC_TimeStampConfig( void );
 static void initializeAllSensors( void );
-//**************************************************************************
-uint16_t voice_count,timer4_count;
-uint32_t voice_distance;
-static void MX_TIM4_Init(void);
-TIM_HandleTypeDef htim4;
-static void MX_GPIO_Init(void);
+
 
 /* Private functions ---------------------------------------------------------*/
  
@@ -147,9 +143,33 @@ int main( void )
 //  /* enable USB power on Pwrctrl CR2 register */
 //  HAL_PWREx_EnableVddUSB();
   
-  MX_GPIO_Init();
-  MX_TIM4_Init();  
-  MX_UART5_Init();//串口初始化
+  if(SendOverUSB) /* Configure the USB */
+  {
+		MX_UART5_Init();//串口初始化
+		/*##-1- Configure the UART peripheral ######################################*/
+  /* Put the USART peripheral in the Asynchronous mode (UART Mode) */
+  /* UART configured as follows:
+      - Word Length = 8 Bits (7 data bit + 1 parity bit) : BE CAREFUL : Program 7 data bits + 1 parity bit in PC HyperTerminal
+      - Stop Bit    = One Stop bit
+      - Parity      = ODD parity
+      - BaudRate    = 9600 baud
+      - Hardware flow control disabled (RTS and CTS signals) */
+ 
+		
+//    /*** USB CDC Configuration ***/
+//    /* Init Device Library */
+//    USBD_Init(&USBD_Device, &VCP_Desc, 0);
+//    /* Add Supported Class */
+//    USBD_RegisterClass(&USBD_Device, USBD_CDC_CLASS);
+//    /* Add Interface callbacks for AUDIO and CDC Class */
+//    USBD_CDC_RegisterInterface(&USBD_Device, &USBD_CDC_fops);
+//    /* Start Device Process */
+//    USBD_Start(&USBD_Device);
+  }
+  else /* Configure the SDCard */
+  {
+    DATALOG_SD_Init();
+  }
   HAL_Delay(200);
   
   /* Configure and disable all the Chip Select pins */
@@ -158,11 +178,10 @@ int main( void )
   /* Initialize and Enable the available sensors */
   initializeAllSensors();
   enableAllSensors();
-   HAL_TIM_Base_Start_IT(&htim4);  
+  
   
   while (1)
   {
-	 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, GPIO_PIN_RESET);		
     /* Get sysTick value and check if it's time to execute the task */
     msTick = HAL_GetTick();
     if(msTick % DATA_PERIOD_MS == 0 && msTickPrev != msTick)
@@ -225,12 +244,40 @@ int main( void )
 				{
 					Q_ANGLE.Z=-45;
 				}
-				if(msTick % 100==0)
+				
+				
+				
+				if(msTick %100==0)
 				{
-				printf("x:%04d",(int)((Q_ANGLE.X+45)*1024.00/90.00));
-				printf("y:%04d",(int)((Q_ANGLE.Y+45)*1024.00/90.00));
-				printf("z:%04d",(int)((Q_ANGLE.Z+45)*1024.00/90.00));
-				printf("h:%04d",voice_distance);
+					nowx=(int)((Q_ANGLE.X+45)*1024.00/90.00);
+				nowy=(int)((Q_ANGLE.Y+45)*1024.00/90.00);
+				nowz=(int)((Q_ANGLE.Z+45)*1024.00/90.00);
+					if((nowx-lastx<10)&&(nowx-lastx>-10))//滤波一次
+				{
+				nowx=lastx;
+				
+				}
+				if((nowy-lasty<10)&&(nowy-lasty>-10))//滤波一次
+				{
+				nowy=lasty;
+				
+				}
+				if((nowz-lastz<10)&&(nowz-lastz>-10))//滤波一次
+				{
+				nowz=lastz;
+				
+				}
+				
+//				printf("x:%04d",(int)((Q_ANGLE.X+45)*1024.00/90.00));
+//				printf("y:%04d",(int)((Q_ANGLE.Y+45)*1024.00/90.00));
+//				printf("z:%04d",(int)((Q_ANGLE.Z+45)*1024.00/90.00));
+				printf("x:%04d",nowx);
+				printf("y:%04d",nowy);
+				printf("z:%04d",nowz);
+				
+				lastx=nowx;
+				lasty=nowy;
+				lastz=nowz;
 				}
 		/************************************/
       if(!no_GG)
@@ -290,78 +337,7 @@ int main( void )
 }
 
 
-//10US进入一次中断 19 39 
-void TIM4_IRQHandler(void)
-{
-  __HAL_TIM_CLEAR_IT(&htim4,TIM_IT_UPDATE);	//清除中断
-  if(	HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_1))  //在rx引脚为高时计时
-  {
- 	voice_count++;
-  }
-  else
-  {
-	if(voice_count > 2)
-	{
-		voice_distance = 340*(voice_count+1)/100/2; //毫米  身高80cm
-	}
-	voice_count = 0;
-  }
-  timer4_count++;
-//  if(10 == timer4_count)  //持续1ms的高电平
-//  {
-//	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, GPIO_PIN_RESET);		
-//  }
-//  if(80 == timer4_count)
-//  {
-//    timer4_count = 0;
-//	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, GPIO_PIN_SET);
-//  }
-}
 
-/* TIM4 init function */
-void MX_TIM4_Init(void)
-{
-
-  TIM_ClockConfigTypeDef sClockSourceConfig;
-  TIM_MasterConfigTypeDef sMasterConfig;
-
-  htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 19;
-  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 39;
-  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  HAL_TIM_Base_Init(&htim4);
-
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig);
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig);
-}
-void MX_GPIO_Init(void)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, GPIO_PIN_SET);
-//  /*Configure GPIO pin : PC0 */
-//  GPIO_InitStruct.Pin = GPIO_PIN_0;
-//  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-//  GPIO_InitStruct.Pull = GPIO_PULLUP;
-//  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-//  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PC1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-}
 /**
 * @brief  Initialize all sensors
 * @param  None

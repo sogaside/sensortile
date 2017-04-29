@@ -30,15 +30,15 @@ Build target 'DataLog_STM32L476RG_SensorTile'
 compiling main.c...
 ..\MDK-ARM\IMU.h(22): warning:  #1-D: last line of file ends without a newline
   				
-..\Src\main.c(230): warning:  #1035-D: single-precision operand implicitly converted to double-precision
-  				printf("x:%04d",(int)((Q_ANGLE.X+45)*1024.00/90.00));
-..\Src\main.c(231): warning:  #1035-D: single-precision operand implicitly converted to double-precision
-  				printf("y:%04d",(int)((Q_ANGLE.Y+45)*1024.00/90.00));
-..\Src\main.c(232): warning:  #1035-D: single-precision operand implicitly converted to double-precision
-  				printf("z:%04d",(int)((Q_ANGLE.Z+45)*1024.00/90.00));
+..\Src\main.c(252): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  					nowx=(int)((Q_ANGLE.X+45)*1024.00/90.00);
+..\Src\main.c(253): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  				nowy=(int)((Q_ANGLE.Y+45)*1024.00/90.00);
+..\Src\main.c(254): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  				nowz=(int)((Q_ANGLE.Z+45)*1024.00/90.00);
 ..\Src\main.c: 4 warnings, 0 errors
 linking...
-Program Size: Code=76612 RO-data=2612 RW-data=1212 ZI-data=26492  
+Program Size: Code=80600 RO-data=2624 RW-data=1232 ZI-data=26432  
 FromELF: creating hex file...
 After Build - User command #1: C:\Keil_v5\\ARM\ARMCC\bin\fromelf.exe --bin --output=STM32L476JG_SensorTile.bin .\STM32L476RG_NUCLEO\STM32L476JG_SensorTile.axf
 ".\STM32L476RG_NUCLEO\STM32L476JG_SensorTile.axf" - 0 Error(s), 4 Warning(s).
@@ -59,7 +59,7 @@ Package Vendor: ARM
 <h2>Collection of Component Files used:</h2>
 
    * Component: ARM::CMSIS:CORE:4.3.0
-Build Time Elapsed:  00:00:05
+Build Time Elapsed:  00:00:06
 </pre>
 </body>
 </html>
