@@ -1,3 +1,3 @@
 其中12864文件夹为51的程序
-打开MDK-ARM双击工程文件即可打开sensortile工程
+datalog.rar文件替换v1.2.0固件包中的datalog文件夹即可实现利用sensortile实现遥控功能。
 nucleo-f401re板子显示角度值是nucleo-f401re板子的程序，在遥控器中没有用到，只是显示了飞机的实时角度。
